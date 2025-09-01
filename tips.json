@@ -1,0 +1,16 @@
+[
+  {
+    "id": "T001",
+    "q": "How to put first reef in 25kts",
+    "a_steps": "1) Brief crew and clip in.\n2) Head up 20–30° to ease load.\n3) Ease mainsheet and vang slightly.\n4) Lower halyard to the first reef tack.\n5) Hook tack, tension halyard.\n6) Pull reef line, trim mainsheet.\n7) Tidy lines and check sail shape.",
+    "tier": "free",
+    "tags": ["reefing","main","25kts"]
+  },
+  {
+    "id": "T045",
+    "q": "Med-mooring in crosswind",
+    "a_steps": "1) Brief crew and rig lines early.\n2) Approach slightly upwind of slot.\n3) Drop chain a bit early.\n4) Engine astern, hold bow into wind.\n5) Secure stern lines first, then springs.\n6) Adjust chain and lines for balance.",
+    "tier": "pro",
+    "tags": ["mooring","crosswind","medmoor"]
+  }
+]
