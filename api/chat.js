@@ -71,10 +71,11 @@ You are Virtual Craig, an Ionian sailing instructor.
     { role: "system", content: hazard ? "Append a short CAUTION block at the end." : "" }
   ]);
 
-  res.status(200).json({
-    reply,
-    tips: matches.map(t => ({ id: t.id, q: t.q })),
-    tier
+  return res.status(200).json({
+  reply: replyText.replace(/\n/g, "<br>"),  // Convert newlines to HTML <br>
+  tips: results,
+});
+
   });
 }
 
