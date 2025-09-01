@@ -1,10 +1,10 @@
+import tips from "../tips.json" assert { type: "json" };
+
 export default async function handler(req, res) {
-  // Allow calls from your app
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  // Read message (from GET or POST)
   const message = req.method === "GET"
     ? (req.query.message || "")
     : (await readBody(req)).message;
@@ -13,10 +13,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "No message given" });
   }
 
-  // Simple test reply (we’ll connect to OpenAI next)
+  // Simple keyword match search against tips
+  const q = message.toLowerCase();
+  const matches = tips.filter(
+    t => t.q.toLowerCase().includes(q) ||
+         (t.tags && t.tags.join(" ").toLowerCase().includes(q))
+  );
+
+  // Take top 1–2 tips
+  const results = matches.slice(0, 2);
+
+  if (results.length === 0) {
+    return res.status(200).json({
+      reply: `Virtual Craig received: "${message}". No specific tip found, but keep it simple and safe.`,
+      tips: []
+    });
+  }
+
   return res.status(200).json({
     reply: `Virtual Craig received: "${message}"`,
-    tips: ["T001", "T045"]
+    tips: results.map(t => ({ id: t.id, q: t.q, steps: t.a_steps }))
   });
 }
 
