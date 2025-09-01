@@ -1,31 +1,29 @@
-// api/chat.js – uses tips.json + OpenAI
-
-import fs from "fs";
-import path from "path";
-
-function loadTips() {
-  const tipsPath = path.join(process.cwd(), "tips.json");
-  const raw = fs.readFileSync(tipsPath, "utf8");
-  return JSON.parse(raw);
-}
+// api/chat.js — robust version (no fs)
+const tips = require("../tips.json"); // bundled at build time
 
 async function askOpenAI(messages) {
-  const resp = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      temperature: 0.3,
-      messages,
-    }),
-  });
-
-  const j = await resp.json();
-  if (!j.choices) throw new Error("OpenAI error: " + JSON.stringify(j));
-  return j.choices[0].message.content.trim();
+  try {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages,
+      }),
+    });
+    const j = await r.json();
+    if (!j.choices || !j.choices[0]?.message?.content) {
+      throw new Error(`OpenAI response: ${JSON.stringify(j)}`);
+    }
+    return j.choices[0].message.content.trim();
+  } catch (err) {
+    // Return the error text instead of crashing the function
+    return `⚠️ OpenAI request failed: ${err.message}`;
+  }
 }
 
 export default async function handler(req, res) {
@@ -33,44 +31,59 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const message = req.query.message || (await readBody(req)).message;
-  if (!message) return res.status(400).json({ error: "No message" });
+  const isGet = req.method === "GET";
+  const body = isGet ? {} : await readBody(req);
+  const message = isGet ? (req.query.message || "") : (body.message || "");
+  const tier = (isGet ? (req.query.tier || "") : (body.tier || "")).toLowerCase() || "free";
 
-  const tips = loadTips();
+  if (!message) return res.status(400).json({ error: "No message given" });
+  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: "OPENAI_API_KEY missing" });
 
-  // Find matching tips
-  const matches = tips.filter(t =>
-    t.question.toLowerCase().includes(message.toLowerCase()) ||
-    (t.tags && t.tags.join(" ").toLowerCase().includes(message.toLowerCase()))
-  );
+  // filter by tier
+  const rank = t => (t === "exclusive" ? 2 : t === "pro" ? 1 : 0);
+  const allow = rank(tier);
+  const pool = tips.filter(t => rank(t.tier) <= allow);
 
-  // Pick up to 2 tips
-  const selected = matches.slice(0, 2);
+  // naive retrieval
+  const q = message.toLowerCase();
+  const matches = pool.filter(
+    t => (t.q || "").toLowerCase().includes(q) ||
+         (t.tags || []).join(" ").toLowerCase().includes(q)
+  ).slice(0, 3);
 
-  let systemPrompt = "You are Virtual Craig, an Ionian sailing instructor. Answer clearly, in numbered steps, like a practical sailing checklist.";
+  const hazard = /(\b3[0-9]\b|\b30\b).*k|thunder|squall|gale|storm|lightning|MOB/i.test(message);
 
-  let userPrompt = "The user asked: " + message + "\n\n";
-  if (selected.length > 0) {
-    userPrompt += "Here are reference tips:\n";
-    selected.forEach((t, i) => {
-      userPrompt += `${i + 1}. ${t.answer}\n`;
-    });
-  } else {
-    userPrompt += "No specific tips found. Give your best sailing advice.";
-  }
+  const system = `
+You are Virtual Craig, an Ionian sailing instructor.
+- Answer in short, clear, NUMBERED STEPS only.
+- Prefer the provided tips; stay within the user's tier.
+- If hazardous conditions are mentioned, append a short CAUTION block.
+`;
+
+  const context = matches.length
+    ? "Relevant tips (use these):\n" + matches.map(t => `ID:${t.id}\nQ:${t.q}\nSTEPS:${t.a_steps}`).join("\n---\n")
+    : "No matching tips; give conservative Day Skipper best practice.";
 
   const reply = await askOpenAI([
-    { role: "system", content: systemPrompt },
-    { role: "user", content: userPrompt },
+    { role: "system", content: system },
+    { role: "system", content: context },
+    { role: "user", content: `User asks: "${message}"` },
+    { role: "system", content: hazard ? "Append a short CAUTION block at the end." : "" }
   ]);
 
-  res.status(200).json({ reply, tips: selected.map(t => t.id) });
+  res.status(200).json({
+    reply,
+    tips: matches.map(t => ({ id: t.id, q: t.q })),
+    tier
+  });
 }
 
 async function readBody(req) {
   return new Promise(resolve => {
     let data = "";
-    req.on("data", chunk => data += chunk);
-    req.on("end", () => resolve(JSON.parse(data || "{}")));
+    req.on("data", c => data += c);
+    req.on("end", () => {
+      try { resolve(JSON.parse(data || "{}")); } catch { resolve({}); }
+    });
   });
 }
