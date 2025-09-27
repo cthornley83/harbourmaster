@@ -1,12 +1,13 @@
-// api/embed.js
-module.exports = async function (req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Only POST allowed" });
-  }
+{
+  "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@3.0.0"
+    }
+  },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1.js" }
+  ]
+}
 
-  return res.status(200).json({
-    message: "Embed endpoint is alive",
-    body: req.body || null,
-  });
-};
 
