@@ -1,6 +1,13 @@
-"dependencies": {
-  "openai": "^4.0.0"
+{
+  "name": "harbourmaster",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "openai": "^4.0.0"
+  }
 }
+
 
 
 
