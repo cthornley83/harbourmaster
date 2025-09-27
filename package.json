@@ -1,5 +1,9 @@
 {
+  "name": "harbourmaster",
+  "version": "1.0.0",
+  "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   }
 }
+
