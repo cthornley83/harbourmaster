@@ -1,14 +1,13 @@
 // api/embed.js
 // Endpoint for generating embeddings from OpenAI
 
-export default async function handler(req, res) {
+module.exports = async function (req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed" });
   }
 
   try {
     const { text } = req.body;
-
     if (!text) {
       return res.status(400).json({ error: "Missing text input" });
     }
@@ -34,7 +33,9 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error("Embed API error:", err);
-    res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({ error: "Internal server error" });
   }
-}
+};
+
+
 
