@@ -1,6 +1,4 @@
 // api/embed.js
-// Minimal test for embed endpoint
-
 module.exports = async function (req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Only POST allowed" });
@@ -11,3 +9,4 @@ module.exports = async function (req, res) {
     body: req.body || null,
   });
 };
+
