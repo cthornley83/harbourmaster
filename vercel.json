@@ -1,12 +1,7 @@
 {
   "version": 2,
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "@vercel/node@4.0.0"
-    }
-  },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" }
-  ]
+  "functions": { "api/*.js": { "runtime": "nodejs20.x" } },
+  "routes": [{ "src": "/api/(.*)", "dest": "/api/$1" }],
+  "crons": [{ "path": "/api/poll", "schedule": "* * * * *" }]
 }
 
