@@ -1,25 +1,31 @@
 export default async function handler(req, res) {
   try {
-    let body = req.body;
+    let rawBody = req.body;
 
-    // If body is a string, try to parse it
-    if (typeof body === "string") {
+    // If body is empty, use query params
+    if (!rawBody) {
+      return res.status(200).json({
+        note: "No body received — falling back to query params",
+        query: req.query,
+        method: req.method,
+        headers: req.headers
+      });
+    }
+
+    // If body is a string, try parsing
+    let parsedBody = rawBody;
+    if (typeof rawBody === "string") {
       try {
-        body = JSON.parse(body);
+        parsedBody = JSON.parse(rawBody);
       } catch {
-        // leave it as string if not JSON
+        parsedBody = { raw: rawBody };
       }
     }
 
-    // If still undefined, fall back to query param
-    if (!body) {
-      body = req.query || "No body received";
-    }
-
     res.status(200).json({
+      received: parsedBody,
       method: req.method,
-      headers: req.headers,
-      received: body
+      headers: req.headers
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
