@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   try {
     console.log("BODY RECEIVED:", req.body);
 
-    // Handle both string and object bodies (Thunkable sends as string if Body type = String)
+    // Make sure body is always an object
     let body = req.body;
 
     if (typeof body === "string") {
@@ -21,18 +21,18 @@ export default async function handler(req, res) {
       }
     }
 
-    const { input, model } = body;
+    const input = body?.input || null;
+    const model = body?.model || "text-embedding-3-small";
 
     if (!input) {
       return res.status(400).json({ error: "Missing input text" });
     }
 
     const response = await client.embeddings.create({
-      model: model || "text-embedding-3-small",
+      model,
       input,
     });
 
-    // Return just the embedding + original input
     res.status(200).json({
       embedding: response.data[0].embedding,
       input,
@@ -42,4 +42,3 @@ export default async function handler(req, res) {
     res.status(500).json({ error: err.message });
   }
 }
-
