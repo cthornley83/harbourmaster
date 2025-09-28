@@ -7,6 +7,8 @@ const client = new OpenAI({
 
 export default async function handler(req, res) {
   try {
+    console.log("BODY RECEIVED:", req.body);
+
     const { input } = req.body;
 
     if (!input) {
