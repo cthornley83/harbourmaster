@@ -7,38 +7,31 @@ const client = new OpenAI({
 
 export default async function handler(req, res) {
   try {
-    console.log("BODY RECEIVED:", req.body);
+    // Log everything so we can see what Thunkable is sending
+    console.log("METHOD:", req.method);
+    console.log("HEADERS:", req.headers);
+    console.log("BODY RAW:", req.body);
 
-    // Make sure body is always an object
-    let body = req.body;
-
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch (e) {
-        console.error("JSON parse failed:", e, body);
-        return res.status(400).json({ error: "Invalid JSON string" });
-      }
-    }
-
-    const input = body?.input || null;
-    const model = body?.model || "text-embedding-3-small";
+    // Safely pull input + model
+    const { input, model } = req.body || {};
 
     if (!input) {
-      return res.status(400).json({ error: "Missing input text" });
+      return res.status(400).json({ error: "Missing input text", body: req.body });
     }
 
     const response = await client.embeddings.create({
-      model,
+      model: model || "text-embedding-3-small",
       input,
     });
 
+    // Return embedding and echo input back
     res.status(200).json({
       embedding: response.data[0].embedding,
       input,
     });
   } catch (err) {
-    console.error("Server error:", err);
+    console.error("ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 }
+
