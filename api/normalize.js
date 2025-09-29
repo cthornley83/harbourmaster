@@ -1,6 +1,6 @@
 // /api/normalize.js
-export const config = { runtime: "nodejs" }; // or remove this line
 
+// find the first non-empty answer string in common shapes
 function extractAnswer(obj) {
   const paths = [
     ['answer'], ['content'], ['result'], ['output'],
@@ -26,28 +26,44 @@ function extractAnswer(obj) {
 }
 
 export default async function handler(req, res) {
+  // CORS for Thunkable
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ status:'error', error:'Use POST' });
+  if (req.method !== 'POST') return res.status(405).json({ status: 'error', error: 'Use POST' });
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/chat'; // ← set this or change to '/api/embed'
+
+    // Decide where to call: prefer env var you already set; else default to your chat route
+    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/chat';
     const base = `https://${req.headers.host}`;
-    const url = ragPath.startsWith('http') ? ragPath : `${base}${ragPath}`;
+    const ragUrl = ragPath.startsWith('http') ? ragPath : `${base}${ragPath}`;
 
     let data = body;
+
+    // If client sends {prompt}, call your RAG route; otherwise just normalize the given JSON
     if (!('answer' in body) && ('prompt' in body)) {
-      const r = await fetch(url, {
+      const r = await fetch(ragUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: body.prompt })
       });
-      if (!r.ok) return res.json({ status:'error', error:`RAG ${r.status}`, sample: await r.text() });
-      try { data = await r.json(); } catch { data = { raw: await r.text() }; }
+      if (!r.ok) {
+        return res.json({ status: 'error', error: `RAG ${r.status}`, sample: await r.text() });
+      }
+      try { data = await r.json(); }
+      catch { data = { raw: await r.text() }; }
     }
 
     const answer = extractAnswer(data);
-    if (!answer) return res.json({ status:'error', error:'No answer field found', sample: JSON.stringify(dat
+    if (!answer) {
+      return res.json({ status: 'error', error: 'No answer field found', sample: JSON.stringify(data).slice(0, 600) });
+    }
+    return res.json({ status: 'ok', answer: String(answer) });
+  } catch (e) {
+    return res.json({ status: 'error', error: String(e) });
+  }
+}
+
