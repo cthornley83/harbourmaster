@@ -1,27 +1,18 @@
 // /api/normalize.js
-export const config = { runtime: "nodejs18.x" }; // ok for Vercel
+export const config = { runtime: "nodejs" }; // or remove this line
 
-// Try common shapes and return the first non-empty string
 function extractAnswer(obj) {
   const paths = [
-    ['answer'],
-    ['content'],
-    ['result'],
-    ['output'],
-    ['data','answer'],
-    ['data','content'],
-    ['choices',0,'message','content'],
-    ['choices',0,'text'],
-    ['message','content'],
-    ['response','answer'],
-    ['response','content'],
+    ['answer'], ['content'], ['result'], ['output'],
+    ['data','answer'], ['data','content'],
+    ['choices',0,'message','content'], ['choices',0,'text'],
+    ['message','content'], ['response','answer'], ['response','content'],
   ];
   for (const p of paths) {
     let cur = obj;
     for (const k of p) cur = Array.isArray(cur) && typeof k === 'number' ? cur[k] : cur?.[k];
     if (typeof cur === 'string' && cur.trim()) return cur.trim();
   }
-  // fallback: first non-empty string anywhere
   const q = [obj];
   while (q.length) {
     const x = q.shift();
@@ -38,48 +29,25 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') {
-    return res.status(405).json({ status: 'error', error: 'Use POST' });
-  }
+  if (req.method !== 'POST') return res.status(405).json({ status:'error', error:'Use POST' });
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-
-    // Point this to your working RAG endpoint. You have /api/chat, /api/embed, /api/match etc.
-    // Use the env you already created (RAG_ENDPOINT_PATH) or default to /api/embed.
+    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/chat'; // ← set this or change to '/api/embed'
     const base = `https://${req.headers.host}`;
-    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/embed';
     const url = ragPath.startsWith('http') ? ragPath : `${base}${ragPath}`;
 
     let data = body;
-
-    // If client sent {prompt}, call your internal RAG route
     if (!('answer' in body) && ('prompt' in body)) {
       const r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: body.prompt })
       });
-
-      if (!r.ok) {
-        return res.json({ status: 'error', error: `RAG ${r.status}`, sample: await r.text() });
-      }
-      try {
-        data = await r.json();
-      } catch (_) {
-        data = { raw: await r.text() };
-      }
+      if (!r.ok) return res.json({ status:'error', error:`RAG ${r.status}`, sample: await r.text() });
+      try { data = await r.json(); } catch { data = { raw: await r.text() }; }
     }
 
     const answer = extractAnswer(data);
-    if (!answer) {
-      return res.json({ status: 'error', error: 'No answer field found', sample: JSON.stringify(data).slice(0, 600) });
-    }
-
-    return res.json({ status: 'ok', answer: String(answer) });
-  } catch (e) {
-    return res.json({ status: 'error', error: String(e) });
-  }
-}
+    if (!answer) return res.json({ status:'error', error:'No answer field found', sample: JSON.stringify(dat
