@@ -1,5 +1,6 @@
 // /api/normalize.js
 
+// Find the first non-empty answer-like string in common API shapes
 function extractAnswer(obj) {
   const paths = [
     ['answer'], ['content'], ['result'], ['output'],
@@ -12,6 +13,7 @@ function extractAnswer(obj) {
     for (const k of p) cur = Array.isArray(cur) && typeof k === 'number' ? cur[k] : cur?.[k];
     if (typeof cur === 'string' && cur.trim()) return cur.trim();
   }
+  // Fallback: first non-empty string anywhere
   const q = [obj];
   while (q.length) {
     const x = q.shift();
@@ -25,35 +27,68 @@ function extractAnswer(obj) {
 }
 
 export default async function handler(req, res) {
+  // CORS for Thunkable
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ status:'error', error:'Use POST' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ status: 'error', error: 'Use POST' });
+  }
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
-    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/chat';   // change to '/api/embed' if that’s your RAG
+
+    // --- Config ---
+    // We lock to /api/embed (your RAG endpoint). You can override via env if needed.
+    const ragPath = process.env.RAG_ENDPOINT_PATH || '/api/embed';
+    const payloadKey = process.env.RAG_PAYLOAD_KEY || ''; // shared key if your RAG checks one
+
+    // Build absolute URL to your own deployment
     const base = `https://${req.headers.host}`;
     const ragUrl = ragPath.startsWith('http') ? ragPath : `${base}${ragPath}`;
 
     let data = body;
+
+    // If the caller sent {prompt}, call RAG; otherwise just normalize whatever JSON they sent
     if (!('answer' in body) && ('prompt' in body)) {
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      // Forward auth in two common ways (whichever your /api/embed expects)
+      if (payloadKey) {
+        headers['x-payload-key'] = payloadKey;
+        headers['Authorization'] = `Bearer ${payloadKey}`;
+      }
+
       const r = await fetch(ragUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ prompt: body.prompt })
       });
-      if (!r.ok) return res.json({ status:'error', error:`RAG ${r.status}`, sample: await r.text() });
-      try { data = await r.json(); } catch { data = { raw: await r.text() }; }
+
+      if (!r.ok) {
+        const sample = await r.text().catch(() => '');
+        return res.json({ status: 'error', error: `RAG ${r.status}`, sample });
+      }
+
+      try { data = await r.json(); }
+      catch { data = { raw: await r.text() }; }
     }
 
+    // Normalize to answer
     const answer = extractAnswer(data);
-    if (!answer) return res.json({ status:'error', error:'No answer field found', sample: JSON.stringify(data).slice(0,600) });
+    if (!answer) {
+      return res.json({
+        status: 'error',
+        error: 'No answer field found',
+        sample: JSON.stringify(data).slice(0, 800)
+      });
+    }
 
-    return res.json({ status:'ok', answer: String(answer) });
+    return res.json({ status: 'ok', answer: String(answer) });
   } catch (e) {
-    return res.json({ status:'error', error:String(e) });
+    return res.json({ status: 'error', error: String(e) });
   }
 }
 
