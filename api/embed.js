@@ -68,7 +68,7 @@ export default async function handler(req, res) {
     // --- Parse input ---
     const body = parseBody(req);
     const prompt = body.prompt ?? body.input;
-    const topK = 5; // fixed default for richest pipeline
+    const topK = 5; // default to 5 matches
     const model = body.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
 
     if (!prompt) {
@@ -80,13 +80,20 @@ export default async function handler(req, res) {
       await fetchMatches({ host: req.headers.host, query: prompt, topK });
 
     const context = matchOK ? buildContext(matches) : "";
-    const sources = matchOK ? matches.map(m => ({ id: m.id, score: m.score })) : [];
+    const sources = matchOK ? matches.map(m => ({
+      id: m.id,
+      score: m.score,
+      metadata: m.metadata || {}
+    })) : [];
 
-    // --- Build system/user messages ---
+    // --- Virtual Craig persona ---
     const systemMsg =
-      "You are Virtual Craig, a calm, step-by-step sailing assistant. " +
-      "Answer clearly in numbered steps when appropriate. Prefer facts from the provided context. " +
-      "If context is insufficient, say what you can with confidence.";
+      "You are Virtual Craig, a Yachtmaster Instructor with 15 years' experience sailing and teaching in the Ionian. " +
+      "Always answer calmly, in clear, short, numbered steps. " +
+      "Base your answers strictly on the provided sailing context (local harbour Q&A knowledge). " +
+      "If multiple context entries are relevant, merge them into one logical explanation. " +
+      "If context is missing, say 'I don’t have local notes on that' instead of guessing. " +
+      "Keep a reassuring, practical tone, as if speaking to a skipper in the cockpit.";
 
     const userMsg = context
       ? `Use the context below to answer the user's question.\n\nContext:\n${context}\n\nQuestion:\n${prompt}`
@@ -126,6 +133,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: String(err?.message || err) });
   }
 }
+
 
 
 
