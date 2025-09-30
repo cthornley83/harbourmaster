@@ -1,11 +1,9 @@
 // /api/chat.js
-import { Configuration, OpenAIApi } from "openai";
+import OpenAI from "openai";
 
-// Setup OpenAI client
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY, // make sure this is set in Vercel
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -13,17 +11,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { question } = req.body;
+    const { question } = req.body || {};
 
     if (!question) {
       return res.status(400).json({ error: "Missing 'question' in request body" });
     }
 
-    // 🔹 TODO: if you want, call your embed + match functions here
-    // const context = await fetch(`${process.env.BASE_URL}/api/match`, { ... })
-
-    // 🔹 Call OpenAI directly (simple version)
-    const response = await openai.createChatCompletion({
+    const completion = await client.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: "You are Virtual Craig, a sailing assistant." },
@@ -31,14 +25,14 @@ export default async function handler(req, res) {
       ],
     });
 
-    const answer = response.data.choices[0].message.content.trim();
-
+    const answer = completion.choices[0].message.content;
     return res.status(200).json({ answer });
   } catch (err) {
     console.error("Chat API error:", err);
-    return res.status(500).json({ error: "Something went wrong", details: err.message });
+    return res.status(500).json({ error: err.message || "Something went wrong" });
   }
 }
+
 
 
 
