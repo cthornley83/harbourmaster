@@ -1,76 +1,45 @@
 // /api/chat.js
-import OpenAI from "openai";
+import { Configuration, OpenAIApi } from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// --- helpers ---
-function setCORS(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-payload-key");
-}
-function parseBody(req) {
-  if (typeof req.body === "string") {
-    try { return JSON.parse(req.body); } catch { return {}; }
-  }
-  return req.body || {};
-}
+// Setup OpenAI client
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY, // make sure this is set in Vercel
+});
+const openai = new OpenAIApi(configuration);
 
 export default async function handler(req, res) {
-  setCORS(res);
-  if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
-
-  // --- Auth (accept x-payload-key OR Bearer). If a key is configured, require it.
-  const expectedKey = process.env.RAG_PAYLOAD_KEY || "";
-  const gotKeyHeader = req.headers["x-payload-key"];
-  const gotBearer = (req.headers["authorization"] || "").replace(/^Bearer\s+/i, "");
-  const gotKey = gotKeyHeader || gotBearer;
-
-  // Minimal visibility in logs (no secrets)
-  console.log("CHAT auth", { hasExpected: Boolean(expectedKey), hasGot: Boolean(gotKey) });
-
-  if (expectedKey) {
-    if (!gotKey || gotKey !== expectedKey) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const body = parseBody(req);
+    const { question } = req.body;
 
-    // Accept either {messages:[...]} or {prompt:"..."} for simplicity
-    const model = body.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
-    const messages = Array.isArray(body.messages) && body.messages.length
-      ? body.messages
-      : [{ role: "user", content: String(body.prompt ?? body.input ?? "") }];
-
-    if (!messages?.[0]?.content) {
-      return res.status(400).json({ error: "Missing prompt/messages" });
+    if (!question) {
+      return res.status(400).json({ error: "Missing 'question' in request body" });
     }
 
-    const resp = await openai.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages
+    // 🔹 TODO: if you want, call your embed + match functions here
+    // const context = await fetch(`${process.env.BASE_URL}/api/match`, { ... })
+
+    // 🔹 Call OpenAI directly (simple version)
+    const response = await openai.createChatCompletion({
+      model: "gpt-3.5-turbo",
+      messages: [
+        { role: "system", content: "You are Virtual Craig, a sailing assistant." },
+        { role: "user", content: question },
+      ],
     });
 
-    const answer =
-      resp?.choices?.[0]?.message?.content?.trim() ||
-      resp?.choices?.[0]?.text?.trim() ||
-      "";
+    const answer = response.data.choices[0].message.content.trim();
 
-    if (!answer) {
-      return res.status(502).json({ error: "LLM returned empty content", upstream: resp });
-    }
-
-    // Keep it simple for the normalizer/Thunkable
     return res.status(200).json({ answer });
-  } catch (e) {
-    console.error("CHAT error:", e);
-    return res.status(500).json({ error: String(e?.message || e) });
+  } catch (err) {
+    console.error("Chat API error:", err);
+    return res.status(500).json({ error: "Something went wrong", details: err.message });
   }
 }
+
 
 
 
