@@ -12,9 +12,10 @@
     "openai": "^4.0.0",
     "@supabase/supabase-js": "^2.42.0",
     "firebase-admin": "^12.6.0",
-    "@vercel/blob": "^0.18.1"
+    "@vercel/blob": "^0.16.1"
   }
 }
+
 
 
 
