@@ -1,3 +1,5 @@
+console.log("DEBUG ELEVEN_API_KEY:", process.env.ELEVEN_API_KEY);
+
 import { put } from "@vercel/blob";
 
 export const config = { api: { bodyParser: true } };
