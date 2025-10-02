@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       }
     );
 
-    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`);
+    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`); 
 
     const arrayBuffer = await resp.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
