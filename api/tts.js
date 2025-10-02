@@ -15,10 +15,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing text in request body" });
     }
 
-    // Debug log (optional)
-    console.log("TTS request:", { text });
-    console.log("Using Voice ID:", process.env.ELEVEN_VOICE_ID);
-
     // Call ElevenLabs TTS API
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVEN_VOICE_ID}`,
@@ -31,7 +27,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_multilingual_v2", // safest multilingual model
+          model_id: "eleven_multilingual_v2",
           voice_settings: {
             stability: 0.5,
             similarity_boost: 0.75,
@@ -54,8 +50,8 @@ export default async function handler(req, res) {
     res.setHeader("Content-Disposition", "inline; filename=output.mp3");
     res.send(buffer);
   } catch (err) {
-    console.error("TTS error:", err);
     res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 }
+
 
