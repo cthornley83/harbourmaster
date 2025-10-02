@@ -1,3 +1,5 @@
+import { put } from "@vercel/blob";
+
 export const config = {
   api: {
     bodyParser: true,
@@ -6,15 +8,22 @@ export const config = {
 
 export default async function handler(req, res) {
   try {
-    const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "Missing text" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
+    }
 
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Missing text" });
+    }
+
+    // Call ElevenLabs
     const resp = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVEN_VOICE_ID}`,
       {
         method: "POST",
         headers: {
-          "Accept": "audio/mpeg",
+          Accept: "audio/mpeg",
           "Content-Type": "application/json",
           "xi-api-key": process.env.ELEVEN_API_KEY,
         },
@@ -25,25 +34,24 @@ export default async function handler(req, res) {
       }
     );
 
-    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`);
+    if (!resp.ok) {
+      throw new Error(`ElevenLabs error: ${resp.status}`);
+    }
 
     const arrayBuffer = await resp.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Save to Blob storage
+    // Upload to Blob with SDK
     const fileName = `tts-${Date.now()}.mp3`;
-    const blobResp = await fetch(`${process.env.VERCEL_BLOB_URL}/${fileName}`, {
-      method: "PUT",
-      headers: { "Content-Type": "audio/mpeg" },
-      body: buffer,
+    const { url } = await put(fileName, buffer, {
+      access: "public",
+      contentType: "audio/mpeg",
     });
 
-    if (!blobResp.ok) throw new Error("Blob storage upload failed");
-
-    const audioUrl = `${process.env.VERCEL_BLOB_URL}/${fileName}`;
-    return res.status(200).json({ audioUrl });
+    return res.status(200).json({ audioUrl: url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
+
