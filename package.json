@@ -16,8 +16,12 @@
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2",
     "openai": "^4.0.0"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.3.24"
   }
 }
+<<<<<<< HEAD
 
 
 
@@ -26,3 +30,5 @@
 
 
 
+=======
+>>>>>>> 9811070 (Clean package.json, lockfile and ignore stray files)
