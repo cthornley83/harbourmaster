@@ -1,8 +1,8 @@
-console.log("DEBUG ELEVEN_API_KEY:", process.env.ELEVEN_API_KEY);
-
-import { put } from "@vercel/blob";
-
-export const config = { api: { bodyParser: true } };
+export const config = {
+  api: {
+    bodyParser: true, // allow JSON POST body
+  },
+};
 
 export default async function handler(req, res) {
   try {
@@ -11,10 +11,16 @@ export default async function handler(req, res) {
     }
 
     const { text } = req.body;
-    if (!text) return res.status(400).json({ error: "Missing text" });
+    if (!text) {
+      return res.status(400).json({ error: "Missing text in request body" });
+    }
 
-    // Call ElevenLabs
-    const resp = await fetch(
+    // Debug log (optional)
+    console.log("TTS request:", { text });
+    console.log("Using Voice ID:", process.env.ELEVEN_VOICE_ID);
+
+    // Call ElevenLabs TTS API
+    const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVEN_VOICE_ID}`,
       {
         method: "POST",
@@ -25,29 +31,31 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_multilingual_v2"
+          model_id: "eleven_multilingual_v2", // safest multilingual model
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+          },
         }),
       }
     );
 
-    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`); 
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs error: ${response.status} - ${errorText}`);
+    }
 
-    const arrayBuffer = await resp.arrayBuffer();
+    // Convert to buffer
+    const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Upload to Blob with SDK
-    const fileName = `tts-${Date.now()}.mp3`;
-    const { url } = await put(fileName, buffer, {
-      access: "public",
-      contentType: "audio/mpeg",
-    });
-
-    res.status(200).json({ audioUrl: url });
+    // Return audio directly
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Content-Disposition", "inline; filename=output.mp3");
+    res.send(buffer);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("TTS error:", err);
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 }
 
-
-"// debug save" 
