@@ -1,6 +1,12 @@
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};
+
 export default async function handler(req, res) {
   try {
-    const { text } = await req.json();
+    const { text } = req.body;
     if (!text) return res.status(400).json({ error: "Missing text" });
 
     const resp = await fetch(
@@ -21,11 +27,10 @@ export default async function handler(req, res) {
 
     if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`);
 
-    // convert response to buffer
     const arrayBuffer = await resp.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // save to Blob storage
+    // Save to Blob storage
     const fileName = `tts-${Date.now()}.mp3`;
     const blobResp = await fetch(`${process.env.VERCEL_BLOB_URL}/${fileName}`, {
       method: "PUT",
@@ -36,7 +41,6 @@ export default async function handler(req, res) {
     if (!blobResp.ok) throw new Error("Blob storage upload failed");
 
     const audioUrl = `${process.env.VERCEL_BLOB_URL}/${fileName}`;
-
     return res.status(200).json({ audioUrl });
   } catch (err) {
     console.error(err);
