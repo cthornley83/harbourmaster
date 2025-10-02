@@ -1,142 +1,42 @@
-// /api/embed.js
+import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-// CORS helper
-function setCORS(res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, x-payload-key");
-}
-
-function parseBody(req) {
-  if (typeof req.body === "string") {
-    try { return JSON.parse(req.body); } catch { return {}; }
-  }
-  return req.body || {};
-}
-
-// Fetch matches from /api/match
-async function fetchMatches({ host, query, topK = 5 }) {
-  try {
-    const matchPath = process.env.MATCH_ENDPOINT_PATH || "/api/match";
-    const matchUrl = matchPath.startsWith("http") ? matchPath : `https://${host}${matchPath}`;
-    const r = await fetch(matchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-payload-key": process.env.RAG_PAYLOAD_KEY || "",
-        "Authorization": `Bearer ${process.env.RAG_PAYLOAD_KEY || ""}`
-      },
-      body: JSON.stringify({ query, match_count: topK })
-    });
-    if (!r.ok) {
-      return { ok: false, error: `match ${r.status}`, data: await r.text() };
-    }
-    const data = await r.json();
-    return { ok: true, matches: data.matches || [] };
-  } catch (e) {
-    return { ok: false, error: String(e) };
-  }
-}
-
-// Build context string from matches
-function buildContext(matches = []) {
-  if (!Array.isArray(matches)) return "";
-  return matches
-    .map(m => m.content || "")
-    .filter(Boolean)
-    .join("\n---\n");
-}
-
 export default async function handler(req, res) {
-  setCORS(res);
-  if (req.method === "OPTIONS") return res.status(204).end();
-  if (req.method !== "POST") return res.status(405).json({ error: "Use POST" });
-
   try {
-    // --- Auth check ---
-    const expectedKey = process.env.RAG_PAYLOAD_KEY || "";
-    const gotKey =
-      req.headers["x-payload-key"] ||
-      (req.headers["authorization"] || "").replace(/^Bearer\s+/i, "");
-    if (expectedKey && gotKey !== expectedKey) {
-      return res.status(401).json({ error: "Unauthorized" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // --- Parse input ---
-    const body = parseBody(req);
-    const prompt = body.prompt ?? body.input;
-    const topK = 5; // default to 5 matches
-    const model = body.model || process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-    if (!prompt) {
-      return res.status(400).json({ error: "Missing 'prompt' (string)" });
+    const { text, metadata } = req.body;
+    if (!text) {
+      return res.status(400).json({ error: "Missing text" });
     }
 
-    // --- Fetch matches ---
-    const { ok: matchOK, matches, error: matchError, data: matchRaw } =
-      await fetchMatches({ host: req.headers.host, query: prompt, topK });
-
-    const context = matchOK ? buildContext(matches) : "";
-    const sources = matchOK ? matches.map(m => ({
-      id: m.id,
-      score: m.score,
-      metadata: m.metadata || {}
-    })) : [];
-
-    // --- Virtual Craig persona ---
-    const systemMsg =
-      "You are Virtual Craig, a Yachtmaster Instructor with 15 years' experience in the Ionian. " +
-      "You MUST base your answers only on the provided sailing context. " +
-      "Do not change, reinterpret, or add to the meaning of the context. " +
-      "Never invent details (e.g. tides, winds, or maneuvers) that are not explicitly in the notes. " +
-      "Your job is only to restate the local notes clearly. " +
-      "When first answering, reply as if giving cockpit instructions: one short intro sentence, then clear, concise numbered steps. " +
-      "Each step must be a short, direct sentence. " +
-      "If context is incomplete, reply: 'No local notes on this.' " +
-      "If the user later asks for more detail (e.g. 'which is easiest', 'tell me more'), you may elaborate using ONLY the provided notes. " +
-      "Always stay calm, practical, and structured in tone.";
-
-    const userMsg = context
-      ? `Use the context below to answer the user's question.\n\nContext:\n${context}\n\nQuestion:\n${prompt}`
-      : `Question:\n${prompt}`;
-
-    // --- Call OpenAI ---
-    const chat = await openai.chat.completions.create({
-      model,
-      temperature: 0.2,
-      messages: [
-        { role: "system", content: systemMsg },
-        { role: "user", content: userMsg }
-      ]
+    // Get embedding from OpenAI
+    const embeddingResponse = await openai.embeddings.create({
+      model: "text-embedding-ada-002",
+      input: text,
     });
 
-    const answer =
-      chat?.choices?.[0]?.message?.content?.trim() ||
-      chat?.choices?.[0]?.text?.trim() ||
-      "";
+    const embedding = embeddingResponse.data[0].embedding;
 
-    if (!answer) {
-      return res.status(502).json({
-        error: "LLM returned empty content",
-        upstream: chat
-      });
-    }
+    // Save to Supabase
+    const { error } = await supabase
+      .from("documents")
+      .insert([{ content: text, embedding, metadata }]);
 
-    // --- Return normalized shape ---
-    return res.status(200).json({
-      answer,
-      sources,
-      usedContext: Boolean(context),
-      matchStatus: matchOK ? "ok" : `skip: ${matchError || matchRaw || "unknown"}`
-    });
+    if (error) throw error;
+
+    res.status(200).json({ success: true, message: "Embedding stored" });
   } catch (err) {
-    console.error("RAG ERROR:", err);
-    return res.status(500).json({ error: String(err?.message || err) });
+    console.error(err);
+    res.status(500).json({ error: err.message || "Internal Server Error" });
   }
 }
+
 
 
 
