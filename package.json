@@ -2,9 +2,11 @@
   "name": "harbourmaster",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "dependencies": {
+    "@supabase/supabase-js": "^2.42.0",
+    "openai": "^4.0.0"
+  }
 }
-
 
 
 
