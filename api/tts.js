@@ -1,9 +1,3 @@
-export const config = {
-  api: {
-    bodyParser: true, // allow JSON POST body
-  },
-};
-
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
@@ -11,12 +5,9 @@ export default async function handler(req, res) {
     }
 
     const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ error: "Missing text in request body" });
-    }
+    if (!text) return res.status(400).json({ error: "Missing text" });
 
-    // Call ElevenLabs TTS API
-    const response = await fetch(
+    const resp = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${process.env.ELEVEN_VOICE_ID}`,
       {
         method: "POST",
@@ -25,32 +16,20 @@ export default async function handler(req, res) {
           "Content-Type": "application/json",
           "xi-api-key": process.env.ELEVEN_API_KEY,
         },
-        body: JSON.stringify({
-          text,
-          model_id: "eleven_multilingual_v2",
-          voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-          },
-        }),
+        body: JSON.stringify({ text, model_id: "eleven_multilingual_v2" }),
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`ElevenLabs error: ${response.status} - ${errorText}`);
-    }
+    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`);
 
-    // Convert to buffer
-    const arrayBuffer = await response.arrayBuffer();
+    const arrayBuffer = await resp.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Return audio directly
     res.setHeader("Content-Type", "audio/mpeg");
     res.setHeader("Content-Disposition", "inline; filename=output.mp3");
     res.send(buffer);
   } catch (err) {
-    res.status(500).json({ error: err.message || "Internal Server Error" });
+    res.status(500).json({ error: err.message });
   }
 }
 
