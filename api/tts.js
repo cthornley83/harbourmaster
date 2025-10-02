@@ -1,10 +1,6 @@
 import { put } from "@vercel/blob";
 
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
+export const config = { api: { bodyParser: true } };
 
 export default async function handler(req, res) {
   try {
@@ -13,9 +9,7 @@ export default async function handler(req, res) {
     }
 
     const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ error: "Missing text" });
-    }
+    if (!text) return res.status(400).json({ error: "Missing text" });
 
     // Call ElevenLabs
     const resp = await fetch(
@@ -29,14 +23,12 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           text,
-          model_id: "eleven_multilingual_v2",
+          model_id: "eleven_multilingual_v2"
         }),
       }
     );
 
-    if (!resp.ok) {
-      throw new Error(`ElevenLabs error: ${resp.status}`);
-    }
+    if (!resp.ok) throw new Error(`ElevenLabs error: ${resp.status}`);
 
     const arrayBuffer = await resp.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -48,10 +40,11 @@ export default async function handler(req, res) {
       contentType: "audio/mpeg",
     });
 
-    return res.status(200).json({ audioUrl: url });
+    res.status(200).json({ audioUrl: url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: err.message });
   }
 }
+
 
