@@ -1,3 +1,1 @@
-export default function handler(req, res) {
-  res.status(200).json({ message: "pong" });
-}
+'export default function handler(req, res) { res.status(200).json({ message: "pong" }); }' 
