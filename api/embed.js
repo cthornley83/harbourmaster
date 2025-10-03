@@ -1,58 +1,42 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
 import OpenAI from "openai";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { text, harbour_name } = req.body;
+
+  if (!text || !harbour_name) {
+    return res.status(400).json({ error: 'Missing required fields: text and harbour_name' });
+  }
+
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
-    const { text, harbour_name, category, tags, tier } = req.body;
-    if (!text || !harbour_name) {
-      return res
-        .status(400)
-        .json({ error: "Missing required fields: text and harbour_name" });
-    }
-
-    // Create embedding with OpenAI
-    const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-ada-002",
-      input: text,
+    // Generate embedding
+    const embedding = await openai.embeddings.create({
+      model: "text-embedding-3-small",
+      input: text
     });
 
-    const embedding = embeddingResponse.data[0].embedding;
-
-    // Insert into Supabase
-    const { error } = await supabase.from("harbour_questions").insert([
-      {
+    // Insert into harbour_questions
+    const { error } = await supabase
+      .from('harbour_questions')
+      .insert({
         question: text,
-        harbour_name,
-        category,
-        tags,
-        tier,
-        embedding,
-      },
-    ]);
+        answer: null,
+        harbour_name: harbour_name,
+        embedding: embedding.data[0].embedding
+      });
 
     if (error) throw error;
 
-    // ✅ Clean response for FlutterFlow
-    res.status(200).json({
-      success: true,
-      message: "Embedding stored successfully",
-    });
+    return res.status(200).json({ message: 'Embedded and stored successfully' });
   } catch (err) {
-    console.error("Embed API error:", err);
-    res.status(500).json({ error: err.message || "Internal Server Error" });
+    return res.status(500).json({ error: err.message });
   }
 }
 
