@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Embed question
+    // 1. Embed the user’s question
     const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: question
@@ -32,23 +32,27 @@ export default async function handler(req, res) {
     if (error) throw error;
 
     // 3. Build context from matches
-    const context = matches && matches.length > 0
-      ? matches.map(m => `Q: ${m.question}\nA: ${m.answer}`).join("\n\n")
-      : "No relevant context found in database.";
+    let context = "No relevant entries found.";
+    if (matches && matches.length > 0) {
+      context = matches
+        .map(m => `Q: ${m.question}\nA: ${m.answer}`)
+        .join("\n\n");
+    }
 
-    // 4. Ask GPT
+    // 4. Ask GPT with the context
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are Virtual Craig, a Yachtmaster Instructor with 15 years in the Ionian. Give clear, step-by-step sailing answers." },
+        { role: "system", content: "You are Virtual Craig, a Yachtmaster Instructor with 15 years in the Ionian. Always answer in step-by-step sailing instructions." },
         { role: "user", content: `Question: ${question}\n\nContext:\n${context}` }
       ]
     });
 
     const answer = completion.choices[0].message.content;
 
-    return res.status(200).json({ answer });
+    return res.status(200).json({ answer, used_context: context });
   } catch (err) {
+    console.error("Chat error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
