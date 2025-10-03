@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from "openai";
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export default async function handler(req, res) {
@@ -16,22 +19,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Embed the user’s question
+    // 1. Embed the question
     const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: question
     });
 
-    // 2. Query Supabase for matches
+    // 2. Query Supabase RPC
     const { data: matches, error } = await supabase.rpc('match_documents', {
       query_embedding: embedding.data[0].embedding,
       match_threshold: 0.75,
       match_count: 5
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase match error:", error);
+      throw error;
+    }
 
-    // 3. Build context from matches
+    // 3. Build context
     let context = "No relevant entries found.";
     if (matches && matches.length > 0) {
       context = matches
@@ -39,12 +45,18 @@ export default async function handler(req, res) {
         .join("\n\n");
     }
 
-    // 4. Ask GPT with the context
+    // 4. Ask GPT
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are Virtual Craig, a Yachtmaster Instructor with 15 years in the Ionian. Always answer in step-by-step sailing instructions." },
-        { role: "user", content: `Question: ${question}\n\nContext:\n${context}` }
+        {
+          role: "system",
+          content: "You are Virtual Craig, a Yachtmaster Instructor with 15 years in the Ionian. Always answer in clear, step-by-step sailing instructions."
+        },
+        {
+          role: "user",
+          content: `Question: ${question}\n\nContext:\n${context}`
+        }
       ]
     });
 
@@ -52,7 +64,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ answer, used_context: context });
   } catch (err) {
-    console.error("Chat error:", err);
+    console.error("Chat handler error:", err);
     return res.status(500).json({ error: err.message });
   }
 }
