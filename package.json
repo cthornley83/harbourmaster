@@ -1,12 +1,12 @@
 {
-  "name": "harbourmaster_final",
+  "name": "harbourmaster",
   "version": "1.0.0",
-  "description": "Pure serverless backend for Harbourmaster.ai (Supabase + OpenAI + ElevenLabs)",
+  "description": "Pure serverless backend for Harbourmaster.ai — Supabase, OpenAI, ElevenLabs integration.",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "vercel dev",
-    "deploy": "vercel --prod --confirm",
+    "start": "node",
+    "deploy": "vercel --prod --yes",
     "build": "vercel build"
   },
   "dependencies": {
@@ -19,3 +19,4 @@
     "node": ">=20.x"
   }
 }
+
