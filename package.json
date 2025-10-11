@@ -5,15 +5,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node",
-    "deploy": "vercel --prod --yes",
-    "build": "vercel build"
+    "start": "node server.js",
+    "build": "echo 'No build step needed'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.3",
     "dotenv": "^16.3.1",
     "node-fetch": "^3.3.2",
-    "openai": "^4.0.0"
+    "openai": "^4.0.0",
+    "express": "^4.18.2"
   },
   "engines": {
     "node": ">=20.x"
