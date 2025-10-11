@@ -1,7 +1,7 @@
 {
   "name": "harbourmaster",
   "version": "1.0.0",
-  "description": "Pure serverless backend for Harbourmaster.ai — Supabase, OpenAI, ElevenLabs integration.",
+  "description": "Pure server backend for Harbourmaster.ai — Supabase, OpenAI, ElevenLabs integration.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,4 +19,3 @@
     "node": ">=20.x"
   }
 }
-
