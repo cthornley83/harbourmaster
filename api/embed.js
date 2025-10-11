@@ -1,8 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
-import express from "express";
-
-const router = express.Router();
 
 // --- Initialize clients ---
 const supabase = createClient(
@@ -12,26 +9,29 @@ const supabase = createClient(
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // --- Main handler ---
-router.post("/", async (req, res) => {
+export default async function handler(req, res) {
   try {
-    const { text, harbour_name } = req.body;
-
-    if (!text || !harbour_name) {
-      return res.status(400).json({
-        error: "Missing required fields: text and harbour_name",
-      });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
     }
 
-    // 1️⃣ Create embedding from the given text
+    const { text, harbour_name } = req.body;
+    if (!text || !harbour_name) {
+      return res
+        .status(400)
+        .json({ error: "Missing required fields: text and harbour_name" });
+    }
+
+    // 1️⃣ Create embedding
     const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: text,
     });
 
-    // 2️⃣ Insert into Supabase table `harbour_questions`
+    // 2️⃣ Insert into Supabase
     const { error } = await supabase.from("harbour_questions").insert({
       question: text,
-      answer: "", // placeholder for now
+      answer: "",
       harbour_name,
       embedding: embedding.data[0].embedding,
     });
@@ -48,6 +48,5 @@ router.post("/", async (req, res) => {
     console.error("Embed handler error:", err);
     return res.status(500).json({ error: err.message });
   }
-});
+}
 
-export default router;
