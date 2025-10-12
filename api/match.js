@@ -23,19 +23,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing or empty query" });
     }
 
-    // 1️⃣ Generate embedding for the incoming query
+    // 1️⃣ Create embedding for the query (1536-dim)
     const embeddingResponse = await openai.embeddings.create({
-      model: "text-embedding-3-large", // 3072-dim; matches Supabase vector column
+      model: "text-embedding-3-small", // ✅ matches your stored embeddings
       input: query,
     });
 
     const queryEmbedding = embeddingResponse.data[0].embedding;
-    console.log("Embedding length:", queryEmbedding.length); // should log 3072 in Render logs
+    console.log("Embedding length:", queryEmbedding.length); // should log 1536 in Render logs
 
     // 2️⃣ Query Supabase for nearest matches
     const { data: matches, error } = await supabase.rpc("match_documents", {
       query_embedding: queryEmbedding,
-      match_threshold: 0.3, // relaxed threshold for recall
+      match_threshold: 0.3, // relaxed threshold for good recall
       match_count: 3,       // return top 3 most similar rows
     });
 
