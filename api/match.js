@@ -29,7 +29,7 @@ export default async function handler(req, res) {
 
     // 2️⃣ Call Supabase RPC to get vector matches
     const { data: matches, error } = await supabase.rpc("match_documents", {
-      query_embedding: embedding.data[0].embedding,
+      query_embedding: embedding.data[0].embedding, 
       match_threshold: 0.75,
       match_count: 5,
     });
