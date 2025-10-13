@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     ────────────────────────────────────────────── */
     let question =
       req.body?.question ||
-      req.body?.query || // ✅ added for FlutterFlow
+      req.body?.query || // ✅ FlutterFlow
       req.body?.data?.question ||
       req.body?.body?.question ||
       req.body?.text ||
@@ -55,7 +55,7 @@ export default async function handler(req, res) {
     const { data: matches, error } = await supabase.rpc("match_documents", {
       query_embedding: embedding.data[0].embedding,
       match_threshold: 0.75,
-      match_count: 3, // ✅ reduced from 5 → 3 for more focused context
+      match_count: 3, // ✅ focused context
     });
 
     if (error) {
@@ -71,15 +71,15 @@ export default async function handler(req, res) {
         .join("\n\n");
     }
 
-    // 4️⃣ Generate the final answer with “Virtual Craig” tone
+    // 4️⃣ Generate the final answer with “Harbourmaster” tone
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
           content:
-            "You are Virtual Craig, a Yachtmaster Instructor with 15 years of experience in the Ionian. " +
-            "You always answer clearly, step-by-step, using safe and practical seamanship based on RYA-style guidance.",
+            "You are Harbourmaster, a Yachtmaster Instructor with 15 years of experience in the Ionian. " +
+            "You always answer clearly, step-by-step, using safe and practical seamanship guidance aligned with RYA best practices.",
         },
         {
           role: "user",
@@ -91,8 +91,12 @@ export default async function handler(req, res) {
 
     const answer = completion.choices[0].message.content;
 
-    // ✅ Return AI answer and the context used
-    return res.status(200).json({ answer, context });
+    // ✅ Return AI answer and context, labeled with sender
+    return res.status(200).json({
+      sender: "Harbourmaster",
+      answer,
+      context,
+    });
   } catch (err) {
     console.error("❌ Chat handler error:", err);
     return res.status(500).json({ error: err.message });
