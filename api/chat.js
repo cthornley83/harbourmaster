@@ -19,14 +19,18 @@ export default async function handler(req, res) {
       return res.status(405).json({ error: "Method not allowed" });
     }
 
+    // 🔍 Log whatever was received
     console.log("📩 RAW BODY:", req.body);
 
-    // 🧭 Accept all possible FlutterFlow / JSON / text payloads
+    /* ──────────────────────────────────────────────
+       Accept all possible body formats
+       (JSON, text, form, or FlutterFlow-specific)
+    ────────────────────────────────────────────── */
     let question =
-      req.body?.query ||
       req.body?.question ||
-      req.body?.data?.query ||
+      req.body?.query || // FlutterFlow
       req.body?.data?.question ||
+      req.body?.body?.question ||
       req.body?.text ||
       (Buffer.isBuffer(req.body)
         ? req.body.toString()
@@ -41,17 +45,17 @@ export default async function handler(req, res) {
 
     console.log("✅ Parsed question:", question);
 
-    // 1️⃣ Create embedding for the query
+    // 1️⃣ Create embedding for the question
     const embedding = await openai.embeddings.create({
       model: "text-embedding-3-small",
       input: question,
     });
 
-    // 2️⃣ Query Supabase for relevant documents
+    // 2️⃣ Query Supabase for relevant matches
     const { data: matches, error } = await supabase.rpc("match_documents", {
       query_embedding: embedding.data[0].embedding,
       match_threshold: 0.75,
-      match_count: 3,
+      match_count: 3, // focused context (kept)
     });
 
     if (error) {
@@ -59,7 +63,7 @@ export default async function handler(req, res) {
       throw error;
     }
 
-    // 3️⃣ Build the context string
+    // 3️⃣ Build contextual prompt
     let context = "No relevant entries found.";
     if (matches && matches.length > 0) {
       context = matches
@@ -67,17 +71,44 @@ export default async function handler(req, res) {
         .join("\n\n");
     }
 
-    // 4️⃣ Generate answer: concise, step-by-step, context-only
+    // 4️⃣ Generate the final answer — concise, context-only
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.0, // purely factual
-      max_tokens: 350,
+      temperature: 0.0,        // strictly factual, no fluff
+      max_tokens: 320,         // keep it tight
       messages: [
         {
           role: "system",
+          content: [
+            "You are Harbourmaster, an RYA-style Yachtmaster Instructor in the Ionian.",
+            "Answer ONLY using the factual information in the provided context.",
+            "If the context does not contain the answer, reply exactly: 'No data available for that question.'",
+            "Format: numbered steps (max 8, each ≤ 20 words) OR 1–3 short factual sentences.",
+            "No introductions, no summaries, no extra commentary."
+          ].join(" ")
+        },
+        {
+          role: "user",
           content:
-            "You are Harbourmaster, an RYA-style Yachtmaster Instructor in the Ionian. " +
-            "Answer ONLY using
+            `Question: ${question}\n\n` +
+            `Context (use only this information):\n${context}`
+        },
+      ],
+    });
+
+    const answer = completion.choices?.[0]?.message?.content?.trim() ?? "";
+
+    // ✅ Return AI answer and the context used
+    return res.status(200).json({
+      sender: "Harbourmaster",
+      answer,
+      context,
+    });
+  } catch (err) {
+    console.error("❌ Chat handler error:", err);
+    return res.status(500).json({ error: err.message });
+  }
+}
 
 
 
