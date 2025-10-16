@@ -22,14 +22,3 @@
     "node": ">=20.x"
   }
 }
-```
-
----
-
-## 🎯 EASIEST FIX: Replace Entire File
-
-### **Step 1: Open package.json in GitHub**
-
-Navigate to:
-```
-harbourmaster / package.json
