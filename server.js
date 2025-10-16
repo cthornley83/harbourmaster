@@ -6,7 +6,7 @@ import chatHandler from "./api/chat.js";
 import embedHandler from "./api/embed.js";
 import matchHandler from "./api/match.js";
 import ttsHandler from "./api/tts.js";
-import cleanAndTagHandler from './clean_and_tag.js';
+import cleanAndTagHandler from './api/clean_and_tag.js';
 
 const app = express();
 
