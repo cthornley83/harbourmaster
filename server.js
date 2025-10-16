@@ -29,6 +29,7 @@ app.post("/api/chat", chatHandler);
 app.post("/api/embed", embedHandler);
 app.post("/api/match", matchHandler);
 app.post("/api/tts", ttsHandler);
+app.post("/api/clean_and_tag", cleanAndTagHandler);
 
 /* ──────────────────────────────────────────────
    TEST ENDPOINT (for FlutterFlow debugging)
