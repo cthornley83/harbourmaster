@@ -74,6 +74,7 @@
       "then": {
         "properties": {
           "answer": {
+            "type": "string",
             "pattern": "\\d+\\.\\s",
             "description": "Pro/Exclusive tier requires numbered steps (1. 2. 3. etc.)"
           }
