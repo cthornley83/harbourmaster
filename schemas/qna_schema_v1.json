@@ -5,8 +5,7 @@
   "required": ["harbour_id", "question", "answer", "category", "tags", "tier"],
   "properties": {
     "harbour_id": { 
-      "type": "string", 
-      "format": "uuid",
+      "type": "string",
       "description": "UUID from harbours table"
     },
     "question": { 
