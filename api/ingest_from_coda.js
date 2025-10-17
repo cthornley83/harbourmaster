@@ -1,6 +1,12 @@
-const OpenAI = require('openai');
-const { createClient } = require('@supabase/supabase-js');
-const Ajv = require('ajv');
+import OpenAI from 'openai';
+import { createClient } from '@supabase/supabase-js';
+import Ajv from 'ajv';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const supabase = createClient(
@@ -9,11 +15,12 @@ const supabase = createClient(
 );
 
 // Load schema
-const qnaSchema = require('../schemas/qna_v1.json');
+const schemaPath = join(__dirname, '../schemas/qna_schema_v1.json');
+const qnaSchema = JSON.parse(readFileSync(schemaPath, 'utf8'));
 const ajv = new Ajv({ allErrors: true, strict: true });
 const validateSchema = ajv.compile(qnaSchema);
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
   console.log('[CODA_INGEST] Received transcript');
 
   try {
