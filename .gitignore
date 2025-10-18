@@ -1,20 +1,23 @@
-{
-  "name": "harbourmaster-backend",
-  "version": "1.0.0",
-  "description": "Harbourmaster.ai — Pure API backend (Virtual Craig, TTS, Supabase RAG)",
-  "main": "index.js",
-  "scripts": {
-    "dev": "vercel dev",
-    "start": "vercel dev"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.39.3",
-    "dotenv": "^16.3.1",
-    "node-fetch": "^3.3.2",
-    "openai": "^4.0.0"
-  },
-  "engines": {
-    "node": "22.x"
-  }
-}
-.vercel
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+batch_log.csv
+
+# Working directories
+voice_inbox/
+hmaster_ai/
+
+# Render
+.render
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "build": "echo 'No build step needed'"
+    "build": "echo 'No build step needed'",
+    "batch": "node batch_ingest.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
