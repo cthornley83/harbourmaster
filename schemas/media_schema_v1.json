@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harbourmaster.ai/schemas/media_schema_v1.json",
+  "title": "Harbour Media Schema",
+  "description": "Schema for harbour photos, videos, and tutorials",
+  "version": "1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["harbour_name", "media_type", "title", "url"],
+  "properties": {
+    "harbour_name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 100,
+      "description": "Name of harbour this media relates to"
+    },
+    "media_type": {
+      "type": "string",
+      "enum": ["photo", "video", "aerial", "tutorial", "diagram"],
+      "description": "Type of media content"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 200,
+      "description": "Descriptive title for the media"
+    },
+    "url": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to media file or embed"
+    },
+    "description": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "What this media shows or explains"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Approach & Entry",
+        "Mooring",
+        "Anchoring",
+        "Weather & Shelter",
+        "Safety & Hazards",
+        "Facilities & Services",
+        "Local Knowledge",
+        "General"
+      ],
+      "description": "Media category"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(scope|mooring|anchor|weather|hazard|facility|media):[a-z0-9_<>\\-]+$"
+      },
+      "uniqueItems": true
+    },
+    "tier": {
+      "type": "string",
+      "enum": ["free", "pro", "exclusive"],
+      "description": "Access tier for this media"
+    },
+    "duration": {
+      "type": "string",
+      "pattern": "^\\d+:\\d{2}$",
+      "description": "Video duration in MM:SS format (videos only)"
+    },
+    "notes": {
+      "type": ["string", "null"],
+      "maxLength": 500
+    }
+  }
+}

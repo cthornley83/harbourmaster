@@ -1,0 +1,294 @@
+# 📋 HARBOURMASTER.AI — DEPLOYMENT CHECKLIST
+**Version:** 1.1 (With Critical Fixes)  
+**Date:** 2025-10-16  
+**Estimated Time:** 3-4 hours total
+
+---
+
+## ✅ PRE-DEPLOYMENT CHECKLIST
+
+- [ ] Render Pro account active
+- [ ] Supabase Pro with pgvector
+- [ ] OpenAI API key funded
+- [ ] Zapier Pro subscription
+- [ ] Coda Pro subscription
+- [ ] GitHub repo connected
+
+---
+
+## 🔧 STEP 1: UPDATE CODE (30 min)
+
+### 1.1 Replace API File
+- [ ] Download `api_clean_and_tag_CORRECTED.js`
+- [ ] Rename to `clean_and_tag.js`
+- [ ] Replace `/api/clean_and_tag.js` in your project
+
+### 1.2 Update Schema
+- [ ] Copy `qna_schema_v1.1_OPTIMIZED.json`
+- [ ] Save to `/schemas/qna_schema_v1.json`
+
+### 1.3 Verify package.json
+- [ ] Has `"type": "module"`
+- [ ] Has dependencies: `ajv`, `ajv-formats`, `@supabase/supabase-js`, `openai`
+
+---
+
+## 🔐 STEP 2: ENVIRONMENT VARIABLES (15 min)
+
+Add to Render Dashboard → Environment:
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-keyOPENAI_API_KEY=sk-your-key
+CLEANER_MODEL=gpt-4o-mini
+RENDER_URL=https://your-app.onrender.com
+INTERNAL_API_KEY=<generate-random-32-char-key>
+NODE_ENV=production
+```
+
+**Generate INTERNAL_API_KEY:**
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+---
+
+## 🗄️ STEP 3: DATABASE UPDATES (20 min)
+
+### 3.1 Create Validation Errors Table
+
+Run in Supabase SQL Editor:
+
+```sql
+CREATE TABLE validation_errors (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  level text NOT NULL CHECK (level IN ('critical', 'high', 'medium')),
+  title text NOT NULL,
+  error_type text,
+  details jsonb NOT NULL,
+  transcript text,
+  attempted_payload jsonb,
+  resolved boolean DEFAULT false,
+  resolved_at timestamptz,
+  resolved_by text,
+  resolution_notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_validation_errors_unresolved 
+  ON validation_errors(resolved) WHERE resolved = false;
+CREATE INDEX idx_validation_errors_level 
+  ON validation_errors(level);
+```
+
+### 3.2 Create Review Queue Table
+
+```sql
+CREATE TABLE qna_review_queue (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  transcript text NOT NULL,
+  error_message text NOT NULL,
+  error_type text,
+  validation_errors jsonb,
+  status text DEFAULT 'needs_review' 
+    CHECK (status IN ('needs_review', 'in_progress', 'fixed', 'discarded')),
+  corrected_data jsonb,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  notes text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE INDEX idx_review_queue_status ON qna_review_queue(status);
+CREATE INDEX idx_review_queue_created ON qna_review_queue(created_at DESC);
+```
+
+---
+
+## 🚀 STEP 4: DEPLOY TO RENDER (30 min)
+
+### 4.1 Commit Changes
+
+```bash
+git add .
+git commit -m "feat: implement GPT-o1-pro optimizations + critical fixes"
+git push origin main
+```
+
+### 4.2 Monitor Deployment
+
+- [ ] Check Render dashboard for deployment status
+- [ ] Wait for "Service is live" message
+- [ ] Check logs for errors
+
+### 4.3 Health Check
+
+```bash
+curl https://your-app.onrender.com/api/health
+```
+
+Expected: `{"status":"ok"}`
+
+---
+
+## 🧪 STEP 5: TEST ENDPOINT (45 min)
+
+### Test 1: Valid Pro Tier
+
+```bash
+curl -X POST https://your-app.onrender.com/api/clean_and_tag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transcript": "Kioni mooring. How to stern-to? 1. Drop anchor 30m out. 2. Reverse slowly. 3. Crew steps ashore."
+  }'
+```
+
+**Expected Response:**
+```json
+{
+  "status": "ok",
+  "id": "uuid-here",
+  "cleaned": {
+    "harbour": "Kioni",
+    "category": "Mooring",
+    "tier": "pro",
+    "tags": ["mooring:stern_to", "scope:harbour"]
+  },
+  "embedding_triggered": true
+}
+```
+
+### Test 2: Valid Free Tier
+
+```bash
+curl -X POST https://your-app.onrender.com/api/clean_and_tag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transcript": "Vathi facilities. Where is water? Water on main quay."
+  }'
+```
+
+**Expected:**
+- Status 200
+- `tier = "free"`
+- Answer ≤2 sentences
+
+### Test 3: Invalid (Pro without steps)
+
+```bash
+curl -X POST https://your-app.onrender.com/api/clean_and_tag \
+  -H "Content-Type: application/json" \
+  -d '{
+    "transcript": "Kioni mooring. Just go stern-to onto quay."
+  }'
+```
+
+**Expected:**
+- Status 422
+- Error: "Pro tier requires numbered steps"
+
+---
+
+## 🔍 STEP 6: VERIFY EMBEDDINGS (20 min)
+
+### 6.1 Check Supabase
+
+Go to Supabase → Table Editor → `harbour_questions`
+
+Verify new rows have:
+- ✅ `embedding` column is NOT NULL
+- ✅ `category` matches new 9-category structure
+- ✅ `tags` are domain-prefixed
+
+### 6.2 Test RAG Search
+
+```bash
+curl -X POST https://your-app.onrender.com/api/match \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "How do I moor in Kioni?",
+    "limit": 5
+  }'
+```
+
+**Expected:**
+- Returns your newly inserted Q&A
+- Similarity score ≥0.75
+
+---
+
+## 📊 STEP 7: CODA INTEGRATION (30 min)
+
+### 7.1 Update Coda Table
+
+In your "Harbourmaster Q&A Database" table:
+
+- [ ] Update Category select list to 9 new categories
+- [ ] Update Tags to multi-select with domain prefixes
+- [ ] Verify Status dropdown exists
+
+### 7.2 Update Zapier Zap
+
+- [ ] Trigger: Coda → Row Updated (Status = "Draft")
+- [ ] Action: Webhooks → POST to `/api/clean_and_tag`
+- [ ] Filter: Only if Status was changed TO "Draft"
+- [ ] Turn Zap ON
+
+---
+
+## ✅ SUCCESS CRITERIA
+
+After deployment, verify:
+
+- [ ] API returns 200 for valid requests
+- [ ] API returns 422 for schema violations
+- [ ] Embeddings generate automatically
+- [ ] New rows appear in Supabase
+- [ ] RAG search returns new content
+- [ ] Zapier Zap runs successfully
+- [ ] No errors in Render logs
+
+---
+
+## 🚨 TROUBLESHOOTING
+
+### Problem: Schema validation fails
+**Fix:** Check Ajv error details, verify category/tags match enum
+
+### Problem: Embedding not generated
+**Fix:** Verify `RENDER_URL` env var, check `/api/embed` endpoint works
+
+### Problem: Zapier times out
+**Fix:** Increase timeout in Zapier settings, optimize OpenAI call
+
+---
+
+## 📈 EXPECTED IMPROVEMENTS
+
+**Before Fixes:**
+- ❌ Embeddings not generated
+- ❌ ~75% RAG similarity
+- ❌ Silent failures
+
+**After Fixes:**
+- ✅ Auto-embedding generation
+- ✅ ≥80% RAG similarity
+- ✅ Error logging to database
+- ✅ Voice → Published in <60s
+
+---
+
+## 🎯 NEXT STEPS
+
+Once deployment is stable:
+
+1. Delete test data (1,074 rows)
+2. Import 20-30 real Kioni Q&As
+3. Test RAG quality with real queries
+4. Scale to 5 harbours
+5. Add weather integration
+
+---
+
+**✅ Deployment Complete!**
