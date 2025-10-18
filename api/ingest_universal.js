@@ -348,6 +348,7 @@ function transformToDbColumns(tableType, cleaned, harbourId = null) {
     case 'harbour_questions':
       // Actual columns: answer, category, created_at, embedding, harbour_id, harbour_name, id, notes, question, source, tags, tier
       return {
+        harbour_id: harbourId,  // FK to harbours table
         harbour_name: s(cleaned.harbour),
         question: s(cleaned.question),
         answer: s(cleaned.answer),
