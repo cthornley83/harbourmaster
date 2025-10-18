@@ -324,9 +324,10 @@ function getCleaningPrompt(tableType, tier = 'pro') {
 // DATA TRANSFORMATION (Schema to DB Columns)
 // ============================================================================
 
-function transformToDbColumns(tableType, cleaned) {
+function transformToDbColumns(tableType, cleaned, harbourId = null) {
   switch (tableType) {
     case 'harbour_questions':
+      // Actual columns: answer, category, created_at, embedding, harbour_id, harbour_name, id, notes, question, source, tags, tier
       return {
         harbour_name: s(cleaned.harbour),
         question: s(cleaned.question),
@@ -335,40 +336,57 @@ function transformToDbColumns(tableType, cleaned) {
         tags: cleaned.tags || [],
         tier: s(cleaned.tier) || "pro",
         notes: cleaned.notes || null
+        // source field added conditionally after transformation
       };
 
     case 'harbours':
-      // Use harbour_name (not name) and minimal fields based on actual DB schema
+      // Actual columns: approach, atmosphere, best_arrival, created_at, crowding_risk, depth_range, facilities, hazards, holding, id, island, island_id, lat, lon, mooring, name, notes, seabed, shelter
       return {
-        harbour_name: s(cleaned.name),
+        name: s(cleaned.name),  // Fixed: was harbour_name
+        island: s(cleaned.region) || null,  // Map region to island
+        lat: cleaned.coordinates?.lat || null,
+        lon: cleaned.coordinates?.lng || null,
+        depth_range: s(cleaned.depth_range) || null,
+        facilities: cleaned.facilities || [],
+        mooring: s(cleaned.mooring_info) || null,
+        approach: s(cleaned.approach_info) || null,
+        shelter: s(cleaned.shelter_info) || null,
+        hazards: s(cleaned.hazards) || null,
+        holding: s(cleaned.holding) || null,
+        seabed: s(cleaned.seabed) || null,
+        atmosphere: s(cleaned.atmosphere) || null,
+        best_arrival: s(cleaned.best_arrival) || null,
+        crowding_risk: s(cleaned.crowding_risk) || null,
         notes: cleaned.notes || null
       };
 
     case 'harbour_weather_profiles':
+      // Actual columns: caution_wind_knots, created_at, depth_notes, expose_mask, exposed_to, fallback_options, harbour_id, holding_quality, id, mooring_difficulty, safe_wind_knots, safety_summary, score_version, shelter_mask, sheltered_from, surge_notes, unsafe_wind_knots
       return {
-        harbour_name: s(cleaned.harbour_name),
+        harbour_id: harbourId,  // Fixed: was harbour_name
         sheltered_from: cleaned.wind_directions?.sheltered_from || [],
         exposed_to: cleaned.wind_directions?.exposed_to || [],
-        shelter_quality: s(cleaned.shelter_quality),
-        swell_susceptible: cleaned.swell_surge?.susceptible || false,
-        swell_conditions: s(cleaned.swell_surge?.conditions) || null,
-        best_conditions: s(cleaned.best_conditions) || null,
-        warnings: s(cleaned.warnings) || null,
-        notes: cleaned.notes || null
+        safety_summary: s(cleaned.safety_summary) || null,
+        holding_quality: s(cleaned.holding_quality) || null,
+        surge_notes: s(cleaned.surge_notes) || null,
+        depth_notes: s(cleaned.depth_notes) || null,
+        fallback_options: s(cleaned.fallback_options) || null,
+        mooring_difficulty: s(cleaned.mooring_difficulty) || null,
+        safe_wind_knots: cleaned.safe_wind_knots || null,
+        caution_wind_knots: cleaned.caution_wind_knots || null,
+        unsafe_wind_knots: cleaned.unsafe_wind_knots || null
+        // Note: shelter_mask, expose_mask, score_version are likely auto-generated
       };
 
     case 'harbour_media':
+      // Actual columns: created_at, description, file_url, harbour_id, id, media_type, tier
       return {
-        harbour_name: s(cleaned.harbour_name),
+        harbour_id: harbourId,  // Fixed: was harbour_name
         media_type: s(cleaned.media_type),
-        title: s(cleaned.title),
-        url: s(cleaned.url),
+        file_url: s(cleaned.url),  // Fixed: map url to file_url
         description: s(cleaned.description) || null,
-        category: s(cleaned.category) || null,
-        tags: cleaned.tags || [],
-        tier: s(cleaned.tier) || "free",
-        duration: s(cleaned.duration) || null,
-        notes: cleaned.notes || null
+        tier: s(cleaned.tier) || "free"
+        // Removed fields that don't exist: title, category, tags, duration, notes
       };
 
     default:
@@ -644,16 +662,12 @@ export default async function handler(req, res) {
     // STEP 6: Transform to DB Column Names & Insert
     // ========================================================================
 
-    const payload = transformToDbColumns(tableType, cleaned);
+    const payload = transformToDbColumns(tableType, cleaned, harbourId);
 
-    // Add harbour_id if verified
-    if (harbourId) {
-      payload.harbour_id = harbourId;
-    }
-
-    // Add row_id if provided (for Coda/Zapier tracking)
-    if (row_id) {
-      payload.source_row_id = row_id;
+    // Add source row_id if provided (for Coda/Zapier tracking)
+    // Only harbour_questions table has "source" column
+    if (row_id && tableType === 'harbour_questions') {
+      payload.source = row_id;
     }
 
     console.log('[INGEST] Inserting to Supabase:', tableType);
