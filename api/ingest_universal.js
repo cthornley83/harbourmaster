@@ -215,7 +215,7 @@ Respond in JSON format:
 // OPENAI CLEANING PROMPTS (Table-Specific)
 // ============================================================================
 
-function getCleaningPrompt(tableType) {
+function getCleaningPrompt(tableType, tier = 'pro') {
   const prompts = {
     harbour_questions: {
       system: [
@@ -235,6 +235,7 @@ function getCleaningPrompt(tableType) {
         "- Include a scope tag: scope:harbour | scope:island | scope:region | scope:global.",
         "- If tier=pro, answer must be numbered steps (1. 2. 3.). If tier=free, ≤2 sentences.",
         "- Front-load hazards when relevant.",
+        `- IMPORTANT: Set tier to "${tier}" (this was pre-detected from the input).`,
         "- Output ONLY the JSON object, no prose."
       ].join("\n")
     },
@@ -382,6 +383,29 @@ function transformToDbColumns(tableType, cleaned) {
 }
 
 // ============================================================================
+// TIER DETECTION HELPER
+// ============================================================================
+
+/**
+ * Detects tier prefix (TIER: FREE | TIER: PRO | TIER: EXCLUSIVE) in transcript
+ * Returns { tier, cleanedTranscript }
+ */
+function detectTier(transcript) {
+  const tierMatch = transcript.match(/^TIER:\s*(FREE|PRO|EXCLUSIVE)[.\s]*/i);
+
+  if (tierMatch) {
+    const tier = tierMatch[1].toLowerCase();
+    const cleanedTranscript = transcript.replace(/^TIER:\s*(FREE|PRO|EXCLUSIVE)[.\s]*/i, '').trim();
+    console.log(`[INGEST] ✓ Detected tier: ${tier}`);
+    return { tier, cleanedTranscript };
+  }
+
+  // Default to "pro" if no tier specified
+  console.log('[INGEST] No tier specified, defaulting to: pro');
+  return { tier: 'pro', cleanedTranscript: transcript };
+}
+
+// ============================================================================
 // MAIN HANDLER
 // ============================================================================
 
@@ -406,13 +430,20 @@ export default async function handler(req, res) {
     console.log('[INGEST] Row ID:', row_id);
 
     // ========================================================================
+    // STEP 0.5: Detect and Extract Tier (if specified)
+    // ========================================================================
+
+    const { tier: detectedTier, cleanedTranscript } = detectTier(transcript);
+    const workingTranscript = cleanedTranscript;
+
+    // ========================================================================
     // STEP 1: Detect Table Type (Prefix or GPT)
     // ========================================================================
 
-    let detection = detectTableTypeByPrefix(transcript);
+    let detection = detectTableTypeByPrefix(workingTranscript);
 
     if (!detection) {
-      detection = await classifyTableTypeWithGPT(transcript);
+      detection = await classifyTableTypeWithGPT(workingTranscript);
 
       // Reject if confidence < 0.90
       if (detection.confidence < 0.90) {
@@ -451,8 +482,8 @@ export default async function handler(req, res) {
     // STEP 2: Clean with OpenAI (Table-Specific Prompt)
     // ========================================================================
 
-    const cleaningPrompt = getCleaningPrompt(tableType);
-    const user = `Input:\n${transcript}`;
+    const cleaningPrompt = getCleaningPrompt(tableType, detectedTier);
+    const user = `Input:\n${workingTranscript}`;
 
     console.log('[INGEST] Calling OpenAI for cleaning...');
 
