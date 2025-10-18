@@ -725,34 +725,59 @@ export default async function handler(req, res) {
     const needsEmbedding = ['harbour_questions', 'harbour_media'].includes(tableType);
     let embeddingTriggered = false;
 
-    if (needsEmbedding) {
+    if (needsEmbedding && tableType === 'harbour_questions') {
       try {
-        const renderUrl = process.env.RENDER_URL || process.env.VERCEL_URL || 'http://localhost:3000';
-        console.log('[INGEST] Triggering embedding generation...');
+        console.log('[INGEST] Generating embedding for Q&A...');
 
-        const embeddingResponse = await fetch(`${renderUrl}/api/embed`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': process.env.INTERNAL_API_KEY || 'development'
-          },
-          body: JSON.stringify({
-            table: tableType,
-            id: data.id
-          })
+        // Generate embedding from question + answer
+        const embeddingText = `${cleaned.question} ${cleaned.answer}`;
+
+        const embeddingResult = await openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: embeddingText
         });
 
-        if (!embeddingResponse.ok) {
-          const errorText = await embeddingResponse.text();
-          console.error('[INGEST] ⚠️ Embedding generation failed:', errorText);
+        // Update the record with the embedding
+        const { error: updateError } = await supabase
+          .from('harbour_questions')
+          .update({ embedding: embeddingResult.data[0].embedding })
+          .eq('id', data.id);
+
+        if (updateError) {
+          console.error('[INGEST] ⚠️ Embedding update failed:', updateError.message);
         } else {
-          console.log('[INGEST] ✅ Embedding generation triggered');
+          console.log('[INGEST] ✅ Embedding generated and updated');
           embeddingTriggered = true;
         }
       } catch (embeddingError) {
-        console.error('[INGEST] ⚠️ Embedding call failed:', embeddingError.message);
+        console.error('[INGEST] ⚠️ Embedding generation failed:', embeddingError.message);
+      }
+    } else if (needsEmbedding && tableType === 'harbour_media') {
+      // harbour_media embeddings (if description exists)
+      try {
+        if (cleaned.description) {
+          console.log('[INGEST] Generating embedding for media description...');
+
+          const embeddingResult = await openai.embeddings.create({
+            model: "text-embedding-3-small",
+            input: cleaned.description
+          });
+
+          const { error: updateError } = await supabase
+            .from('harbour_media')
+            .update({ embedding: embeddingResult.data[0].embedding })
+            .eq('id', data.id);
+
+          if (!updateError) {
+            console.log('[INGEST] ✅ Media embedding generated');
+            embeddingTriggered = true;
+          }
+        }
+      } catch (embeddingError) {
+        console.error('[INGEST] ⚠️ Media embedding failed:', embeddingError.message);
       }
     }
+
 
     // ========================================================================
     // STEP 8: Success Response
