@@ -141,12 +141,17 @@ async function verifyHarbour(harbourName) {
 // TABLE TYPE DETECTION
 // ============================================================================
 
+/**
+ * Hybrid table type detection with three priority levels:
+ *
+ * Priority 1: Strict prefixes (HARBOUR:, WEATHER:, MEDIA:) → confidence 1.0
+ * Priority 2: Q&A keywords (question: + answer: anywhere) → confidence 0.99
+ * Priority 3: Return null for GPT classification
+ */
 function detectTableTypeByPrefix(transcript) {
   const upper = transcript.trim().toUpperCase();
 
-  if (upper.startsWith('QUESTION:')) {
-    return { table: 'harbour_questions', confidence: 1.0, method: 'prefix' };
-  }
+  // PRIORITY 1: Strict prefixes (confidence: 1.0)
   if (upper.startsWith('HARBOUR:')) {
     return { table: 'harbours', confidence: 1.0, method: 'prefix' };
   }
@@ -157,6 +162,16 @@ function detectTableTypeByPrefix(transcript) {
     return { table: 'harbour_media', confidence: 1.0, method: 'prefix' };
   }
 
+  // PRIORITY 2: Q&A keyword detection (confidence: 0.99)
+  // Check if both "question" and "answer" appear anywhere in the text
+  const hasQuestion = /\bQUESTION\s*[:.]?\s*/i.test(transcript);
+  const hasAnswer = /\bANSWER\s*[:.]?\s*/i.test(transcript);
+
+  if (hasQuestion && hasAnswer) {
+    return { table: 'harbour_questions', confidence: 0.99, method: 'keyword' };
+  }
+
+  // PRIORITY 3: No match - use GPT classification
   return null;
 }
 
