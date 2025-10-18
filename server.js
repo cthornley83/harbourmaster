@@ -6,7 +6,8 @@ import embedHandler from "./api/embed.js";
 import matchHandler from "./api/match.js";
 import ttsHandler from "./api/tts.js";
 import cleanAndTagHandler from './api/clean_and_tag.js';
-import ingestFromCodaHandler from './api/ingest_from_coda.js';  // ← ADD THIS
+import ingestFromCodaHandler from './api/ingest_from_coda.js';
+import ingestUniversalHandler from './api/ingest_universal.js';
 
 const app = express();
 
@@ -29,7 +30,8 @@ app.post("/api/embed", embedHandler);
 app.post("/api/match", matchHandler);
 app.post("/api/tts", ttsHandler);
 app.post("/api/clean_and_tag", cleanAndTagHandler);
-app.post("/api/ingest_from_coda", ingestFromCodaHandler);  // ← ADD THIS
+app.post("/api/ingest_from_coda", ingestFromCodaHandler);
+app.post("/api/ingest_universal", ingestUniversalHandler);
 
 /* ──────────────────────────────────────────────
    TEST ENDPOINT (for FlutterFlow debugging)
