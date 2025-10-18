@@ -531,7 +531,8 @@ export default async function handler(req, res) {
 
     if (tableType === 'harbour_questions') {
       if (cleaned.tier === "pro") {
-        const hasSteps = /(^|\n)\s*1\./.test(cleaned.answer) && /(^|\n)\s*2\./.test(cleaned.answer);
+        // Accept both inline (1. ... 2. ...) and newline-separated formats
+        const hasSteps = /1\.\s/.test(cleaned.answer) && /2\.\s/.test(cleaned.answer);
         if (!hasSteps) {
           console.error('[INGEST] ❌ Pro tier missing numbered steps');
 
