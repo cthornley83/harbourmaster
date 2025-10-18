@@ -1,7 +1,7 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["name", "region", "harbour_type", "coordinates"],
+  "required": ["name"],
   "properties": {
     "name": {
       "type": "string",
@@ -9,16 +9,12 @@
       "maxLength": 100
     },
     "region": {
-      "type": "string",
+      "type": ["string", "null"],
       "minLength": 2,
       "maxLength": 100
     },
-    "harbour_type": {
-      "type": "string",
-      "enum": ["harbour", "anchorage", "bay", "marina"]
-    },
     "coordinates": {
-      "type": "object",
+      "type": ["object", "null"],
       "required": ["lat", "lng"],
       "properties": {
         "lat": {
@@ -34,25 +30,53 @@
       },
       "additionalProperties": false
     },
-    "description": {
-      "type": "string",
-      "maxLength": 1000
+    "depth_range": {
+      "type": ["string", "null"],
+      "pattern": "^\\d+(\\.\\d+)?-\\d+(\\.\\d+)?m$"
     },
     "facilities": {
-      "type": "array",
+      "type": ["array", "null"],
       "items": {
         "type": "string",
         "enum": ["water", "fuel", "electricity", "wifi", "showers", "restaurant", "provisions", "chandlery", "laundry", "repair"]
       },
       "uniqueItems": true
     },
-    "capacity": {
-      "type": "integer",
-      "minimum": 0
+    "mooring_info": {
+      "type": ["string", "null"],
+      "maxLength": 1000
     },
-    "depth_range": {
-      "type": "string",
-      "pattern": "^\\d+(\\.\\d+)?-\\d+(\\.\\d+)?m$"
+    "approach_info": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "shelter_info": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "hazards": {
+      "type": ["string", "null"],
+      "maxLength": 1000
+    },
+    "holding": {
+      "type": ["string", "null"],
+      "maxLength": 500
+    },
+    "seabed": {
+      "type": ["string", "null"],
+      "maxLength": 500
+    },
+    "atmosphere": {
+      "type": ["string", "null"],
+      "maxLength": 500
+    },
+    "best_arrival": {
+      "type": ["string", "null"],
+      "maxLength": 500
+    },
+    "crowding_risk": {
+      "type": ["string", "null"],
+      "maxLength": 500
     },
     "notes": {
       "type": ["string", "null"],
