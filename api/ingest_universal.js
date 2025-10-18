@@ -338,16 +338,9 @@ function transformToDbColumns(tableType, cleaned) {
       };
 
     case 'harbours':
+      // Use harbour_name (not name) and minimal fields based on actual DB schema
       return {
-        name: s(cleaned.name),
-        region: s(cleaned.region),
-        harbour_type: s(cleaned.harbour_type),
-        latitude: cleaned.coordinates?.lat,
-        longitude: cleaned.coordinates?.lng,
-        description: s(cleaned.description) || null,
-        facilities: cleaned.facilities || [],
-        capacity: cleaned.capacity || null,
-        depth_range: s(cleaned.depth_range) || null,
+        harbour_name: s(cleaned.name),
         notes: cleaned.notes || null
       };
 
