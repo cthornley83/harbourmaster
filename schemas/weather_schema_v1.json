@@ -1,9 +1,4 @@
 {
-
-  "$id": "https://harbourmaster.ai/schemas/weather_schema_v1.json",
-  "title": "Harbour Weather Profile Schema",
-  "description": "Schema for harbour weather and shelter profiles",
-  "version": "1.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["harbour_name", "wind_directions", "shelter_quality"],
@@ -11,12 +6,10 @@
     "harbour_name": {
       "type": "string",
       "minLength": 2,
-      "maxLength": 100,
-      "description": "Name of harbour this profile describes"
+      "maxLength": 100
     },
     "wind_directions": {
       "type": "object",
-      "description": "Wind direction analysis",
       "required": ["sheltered_from", "exposed_to"],
       "properties": {
         "sheltered_from": {
@@ -41,33 +34,28 @@
     },
     "shelter_quality": {
       "type": "string",
-      "enum": ["excellent", "good", "moderate", "poor"],
-      "description": "Overall shelter rating"
+      "enum": ["excellent", "good", "moderate", "poor"]
     },
     "swell_surge": {
       "type": "object",
       "properties": {
         "susceptible": {
-          "type": "boolean",
-          "description": "Is harbour susceptible to swell/surge?"
+          "type": "boolean"
         },
         "conditions": {
           "type": "string",
-          "maxLength": 500,
-          "description": "When swell/surge occurs"
+          "maxLength": 500
         }
       },
       "additionalProperties": false
     },
     "best_conditions": {
       "type": "string",
-      "maxLength": 500,
-      "description": "Ideal weather conditions for this harbour"
+      "maxLength": 500
     },
     "warnings": {
       "type": "string",
-      "maxLength": 500,
-      "description": "Weather-related warnings"
+      "maxLength": 500
     },
     "notes": {
       "type": ["string", "null"],

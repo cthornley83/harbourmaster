@@ -1,9 +1,4 @@
 {
-
-  "$id": "https://harbourmaster.ai/schemas/media_schema_v1.json",
-  "title": "Harbour Media Schema",
-  "description": "Schema for harbour photos, videos, and tutorials",
-  "version": "1.0",
   "type": "object",
   "additionalProperties": false,
   "required": ["harbour_name", "media_type", "title", "url"],
@@ -11,29 +6,24 @@
     "harbour_name": {
       "type": "string",
       "minLength": 2,
-      "maxLength": 100,
-      "description": "Name of harbour this media relates to"
+      "maxLength": 100
     },
     "media_type": {
       "type": "string",
-      "enum": ["photo", "video", "aerial", "tutorial", "diagram"],
-      "description": "Type of media content"
+      "enum": ["photo", "video", "aerial", "tutorial", "diagram"]
     },
     "title": {
       "type": "string",
       "minLength": 3,
-      "maxLength": 200,
-      "description": "Descriptive title for the media"
+      "maxLength": 200
     },
     "url": {
       "type": "string",
-      "format": "uri",
-      "description": "URL to media file or embed"
+      "format": "uri"
     },
     "description": {
       "type": "string",
-      "maxLength": 1000,
-      "description": "What this media shows or explains"
+      "maxLength": 1000
     },
     "category": {
       "type": "string",
@@ -46,8 +36,7 @@
         "Facilities & Services",
         "Local Knowledge",
         "General"
-      ],
-      "description": "Media category"
+      ]
     },
     "tags": {
       "type": "array",
@@ -59,13 +48,11 @@
     },
     "tier": {
       "type": "string",
-      "enum": ["free", "pro", "exclusive"],
-      "description": "Access tier for this media"
+      "enum": ["free", "pro", "exclusive"]
     },
     "duration": {
       "type": "string",
-      "pattern": "^\\d+:\\d{2}$",
-      "description": "Video duration in MM:SS format (videos only)"
+      "pattern": "^\\d+:\\d{2}$"
     },
     "notes": {
       "type": ["string", "null"],

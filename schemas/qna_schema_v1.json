@@ -1,9 +1,4 @@
 {
-  
-  "$id": "https://harbourmaster.ai/schemas/qna_schema_v1.1.json",
-  "title": "Harbourmaster Q&A Schema",
-  "description": "Schema for validated Q&A entries with domain-prefixed tags and 9-category structure",
-  "version": "1.1",
   "type": "object",
   "additionalProperties": false,
   "required": ["harbour", "question", "answer", "category", "tags", "tier"],
@@ -11,18 +6,15 @@
     "harbour": {
       "type": "string",
       "minLength": 2,
-      "maxLength": 100,
-      "description": "Harbour name (e.g., 'Kioni', 'Vathi', 'Frikes')"
+      "maxLength": 100
     },
     "question": {
       "type": "string",
-      "minLength": 6,
-      "description": "Clear question in natural language"
+      "minLength": 10
     },
     "answer": {
       "type": "string",
-      "minLength": 6,
-      "description": "Answer with numbered steps for Pro tier, ≤2 sentences for Free tier"
+      "minLength": 20
     },
     "category": {
       "type": "string",
@@ -36,8 +28,7 @@
         "Local Knowledge",
         "Media Tutorials",
         "General"
-      ],
-      "description": "Primary category from 9-category structure"
+      ]
     },
     "tags": {
       "type": "array",
@@ -45,8 +36,7 @@
       "maxItems": 12,
       "items": {
         "type": "string",
-        "pattern": "^(scope|mooring|anchor|weather|swell|surge|hazard|facility|atmosphere|crowding|timing|media):[a-z0-9_<>\\-]+$",
-        "description": "Domain-prefixed tag"
+        "pattern": "^(scope|mooring|anchor|weather|swell|surge|hazard|facility|atmosphere|crowding|timing|media):[a-z0-9_<>\\-]+$"
       },
       "uniqueItems": true
     },
