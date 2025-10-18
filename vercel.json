@@ -1,8 +1,0 @@
-{
-  "version": 2,
-  "framework": "nextjs",
-  "builds": [],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1.js" }
-  ]
-}
