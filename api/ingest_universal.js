@@ -246,21 +246,26 @@ function getCleaningPrompt(tableType, tier = 'pro') {
         "Convert the input into strict JSON matching this schema:",
         JSON.stringify({
           name: "string",
-          region: "string (e.g., 'Ionian', 'Ithaca')",
-          harbour_type: "harbour | anchorage | bay | marina",
+          region: "string (maps to island field)",
           coordinates: { lat: 38.1234, lng: 20.5678 },
-          description: "string (max 1000 chars)",
+          depth_range: "3-8m",
           facilities: ["water", "fuel", "electricity", "wifi", "showers", "restaurant", "provisions", "chandlery", "laundry", "repair"],
-          capacity: 20,
-          depth_range: "string (e.g., '3-8m')",
+          mooring_info: "string (mooring details)",
+          approach_info: "string (approach guidance)",
+          shelter_info: "string (shelter quality)",
+          hazards: "string (warnings/hazards)",
+          holding: "string (anchor holding quality)",
+          seabed: "string (seabed type: sand, mud, rock, etc.)",
+          atmosphere: "string (harbour character)",
+          best_arrival: "string (best arrival time/conditions)",
+          crowding_risk: "string (crowding information)",
           notes: null
         }),
         "Rules:",
         "- IMPORTANT: lat and lng must be NUMBERS (not strings). Example: {lat: 38.4231, lng: 20.6583}",
-        "- capacity must be an INTEGER (not a string).",
-        "- harbour_type must be lowercase: harbour, anchorage, bay, or marina.",
-        "- facilities must use exact enum values (lowercase).",
-        "- depth_range format: 'X-Ym' (e.g., '3.5-8m').",
+        "- Extract mooring, approach, shelter, hazards, holding, seabed, atmosphere if mentioned",
+        "- facilities must be an array of lowercase strings",
+        "- depth_range format: 'X-Ym' or 'X-Y.Zm' (e.g., '3-8m', '3.5-12m')",
         "- Output ONLY the JSON object, no prose."
       ].join("\n")
     },
@@ -270,23 +275,26 @@ function getCleaningPrompt(tableType, tier = 'pro') {
         "You are the Harbourmaster Cleaner for weather profiles.",
         "Convert the input into strict JSON matching this schema:",
         JSON.stringify({
-          harbour_name: "string",
           wind_directions: {
             sheltered_from: ["n", "ne", "e", "se", "s", "sw", "w", "nw"],
             exposed_to: ["n", "ne", "e", "se", "s", "sw", "w", "nw"]
           },
-          shelter_quality: "excellent | good | moderate | poor",
-          swell_surge: {
-            susceptible: "boolean",
-            conditions: "string (when swell/surge occurs)"
-          },
-          best_conditions: "string (ideal weather)",
-          warnings: "string (weather warnings)",
-          notes: null
+          safety_summary: "string (brief safety overview)",
+          holding_quality: "string (anchor holding quality)",
+          surge_notes: "string (swell/surge information)",
+          depth_notes: "string (depth-related notes)",
+          fallback_options: "string (alternative harbours if conditions poor)",
+          mooring_difficulty: "string (difficulty level/notes)",
+          safe_wind_knots: 15,
+          caution_wind_knots: 25,
+          unsafe_wind_knots: 35
         }),
         "Rules:",
-        "- Wind directions must be lowercase: n, ne, e, se, s, sw, w, nw.",
-        "- shelter_quality must be lowercase: excellent, good, moderate, or poor.",
+        "- Wind directions must be lowercase arrays: n, ne, e, se, s, sw, w, nw",
+        "- Wind knots must be INTEGERS (numbers, not strings)",
+        "- safe_wind_knots: max safe wind strength",
+        "- caution_wind_knots: caution threshold",
+        "- unsafe_wind_knots: unsafe threshold",
         "- Output ONLY the JSON object, no prose."
       ].join("\n")
     },
@@ -296,22 +304,16 @@ function getCleaningPrompt(tableType, tier = 'pro') {
         "You are the Harbourmaster Cleaner for media records.",
         "Convert the input into strict JSON matching this schema:",
         JSON.stringify({
-          harbour_name: "string",
-          media_type: "photo | video | aerial | tutorial | diagram",
-          title: "string (3-200 chars)",
-          url: "string (valid URL)",
-          description: "string (max 1000 chars)",
-          category: "Approach & Entry | Mooring | Anchoring | Weather & Shelter | Safety & Hazards | Facilities & Services | Local Knowledge | General",
-          tags: ["domain-prefixed tags"],
-          tier: "free | pro | exclusive",
-          duration: "string (MM:SS format for videos)",
-          notes: null
+          media_type: "tutorial",
+          url: "https://example.com/video.mp4",
+          description: "string (brief description of media)",
+          tier: "free"
         }),
         "Rules:",
-        "- media_type must be lowercase: photo, video, aerial, tutorial, or diagram.",
-        "- tier must be lowercase: free, pro, or exclusive.",
-        "- duration only for videos, format: MM:SS (e.g., '3:45').",
-        "- URL must be valid and complete.",
+        "- media_type: use 'tutorial' for instructional videos (other types may be added later)",
+        "- url: must be a valid complete URL to the media file",
+        "- description: brief description of what the media shows",
+        "- tier must be lowercase: free, pro, or exclusive",
         "- Output ONLY the JSON object, no prose."
       ].join("\n")
     }
