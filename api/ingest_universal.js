@@ -371,7 +371,7 @@ function transformToDbColumns(tableType, cleaned, harbourId = null) {
         hazards: s(cleaned.hazards) || null,
         holding: s(cleaned.holding) || null,
         seabed: s(cleaned.seabed) || null,
-        atmosphere: s(cleaned.atmosphere) || null,
+        atmosphere: cleaned.atmosphere ? (Array.isArray(cleaned.atmosphere) ? cleaned.atmosphere : [s(cleaned.atmosphere)]) : null,  // Fix: DB expects array
         best_arrival: s(cleaned.best_arrival) || null,
         crowding_risk: s(cleaned.crowding_risk) || null,
         notes: cleaned.notes || null
