@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  
   "$id": "https://harbourmaster.ai/schemas/qna_schema_v1.1.json",
   "title": "Harbourmaster Q&A Schema",
   "description": "Schema for validated Q&A entries with domain-prefixed tags and 9-category structure",

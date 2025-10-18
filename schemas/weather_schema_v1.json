@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+
   "$id": "https://harbourmaster.ai/schemas/weather_schema_v1.json",
   "title": "Harbour Weather Profile Schema",
   "description": "Schema for harbour weather and shelter profiles",
