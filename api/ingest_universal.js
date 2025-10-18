@@ -358,6 +358,9 @@ function transformToDbColumns(tableType, cleaned, harbourId = null) {
 
     case 'harbours':
       // Actual columns: approach, atmosphere, best_arrival, created_at, crowding_risk, depth_range, facilities, hazards, holding, id, island, island_id, lat, lon, mooring, name, notes, seabed, shelter
+      // NOTE: Many text columns are actually TEXT[] in DB, so we convert strings to arrays
+      const toArray = (val) => val ? (Array.isArray(val) ? val : [s(val)]) : null;
+
       return {
         name: s(cleaned.name),  // Fixed: was harbour_name
         island: s(cleaned.region) || null,  // Map region to island
@@ -365,15 +368,15 @@ function transformToDbColumns(tableType, cleaned, harbourId = null) {
         lon: cleaned.coordinates?.lng || null,
         depth_range: s(cleaned.depth_range) || null,
         facilities: cleaned.facilities || [],
-        mooring: s(cleaned.mooring_info) || null,
-        approach: s(cleaned.approach_info) || null,
-        shelter: s(cleaned.shelter_info) || null,
-        hazards: s(cleaned.hazards) || null,
-        holding: s(cleaned.holding) || null,
-        seabed: s(cleaned.seabed) || null,
-        atmosphere: cleaned.atmosphere ? (Array.isArray(cleaned.atmosphere) ? cleaned.atmosphere : [s(cleaned.atmosphere)]) : null,  // Fix: DB expects array
-        best_arrival: s(cleaned.best_arrival) || null,
-        crowding_risk: s(cleaned.crowding_risk) || null,
+        mooring: toArray(cleaned.mooring_info),
+        approach: toArray(cleaned.approach_info),
+        shelter: toArray(cleaned.shelter_info),  // Fix: DB expects array
+        hazards: toArray(cleaned.hazards),
+        holding: toArray(cleaned.holding),
+        seabed: toArray(cleaned.seabed),
+        atmosphere: toArray(cleaned.atmosphere),  // Fix: DB expects array
+        best_arrival: toArray(cleaned.best_arrival),
+        crowding_risk: toArray(cleaned.crowding_risk),
         notes: cleaned.notes || null
       };
 
