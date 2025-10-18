@@ -182,17 +182,17 @@ Transcript:`;
     console.log('[CLEAN_TAG] Inserting to Supabase...');
     
     const { data, error: insertError } = await supabase
-      .from('harbour_questions')
-      .insert({
-        harbour_name: cleaned.harbour,
-        question: cleaned.question,
-        answer: cleaned.answer,
-        category: cleaned.category,
-        tags: cleaned.tags,
-        tier: cleaned.tier,
-        notes: cleaned.notes,
-        source: source
-      })
+  .from('harbour_questions')
+  .insert({
+    harbour_name: cleaned.harbour, 
+    question: cleaned.question,
+    answer: cleaned.answer,
+    category: cleaned.category,
+    tags: cleaned.tags,
+    tier: cleaned.tier,
+    notes: cleaned.notes,
+    source: source
+  })
       .select('id')
       .single();
 
